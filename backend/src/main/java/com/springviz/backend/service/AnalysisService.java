@@ -1,5 +1,6 @@
 package com.springviz.backend.service;
 
+import com.springviz.backend.analysis.AnalyzedClass;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
@@ -11,14 +12,16 @@ import java.util.List;
 public class AnalysisService {
     private final ZipExtractionService zipExtractionService;
     private final JavaFileScanner javaFileScanner;
+    private final JavaParserService javaParserService;
 
-    public AnalysisService(ZipExtractionService zipExtractionService, JavaFileScanner javaFileScanner) {
+    public AnalysisService(ZipExtractionService zipExtractionService, JavaFileScanner javaFileScanner, JavaParserService javaParserService) {
        this.zipExtractionService = zipExtractionService;
        this.javaFileScanner = javaFileScanner;
+       this.javaParserService = javaParserService;
     }
 
 
-    public List<Path> analyze(MultipartFile file) throws IOException {
+    public List<AnalyzedClass> analyze(MultipartFile file) throws IOException {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("Uploaded file is empty");
         }
@@ -29,15 +32,16 @@ public class AnalysisService {
 
         // 1. Extract zip
         Path projectDirectory = zipExtractionService.extract(file);
-        List<Path> javaFiles = javaFileScanner.findJavaFiles(projectDirectory);
         // 2. Find Java files
+        List<Path> javaFiles = javaFileScanner.findJavaFiles(projectDirectory);
         // 3. parse Java files
+        List<AnalyzedClass> classes = javaParserService.parse(javaFiles);
         // 4. Build graph
         //GraphResponse response = new GraphResponse();
 
         //return response;
 
-        return javaFiles;
+        return classes;
     }
 
 

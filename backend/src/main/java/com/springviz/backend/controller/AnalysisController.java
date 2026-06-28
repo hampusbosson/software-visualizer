@@ -1,5 +1,6 @@
 package com.springviz.backend.controller;
 
+import com.springviz.backend.analysis.AnalyzedClass;
 import com.springviz.backend.service.AnalysisService;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.MediaType;
@@ -26,10 +27,10 @@ public class AnalysisController {
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<List<String>> analyzeProject(@RequestParam("file") @NotNull MultipartFile file) throws IOException {
-        List<Path> javaFiles = analysisService.analyze(file);
+        List<AnalyzedClass> javaFiles = analysisService.analyze(file);
 
         List<String> result = javaFiles.stream()
-                .map(Path::toString)
+                .map(AnalyzedClass::toString)
                 .toList();
 
         return ResponseEntity.ok(result);
