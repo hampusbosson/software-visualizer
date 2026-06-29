@@ -1,6 +1,7 @@
 package com.springviz.backend.controller;
 
 import com.springviz.backend.analysis.AnalyzedClass;
+import com.springviz.backend.graph.GraphResponse;
 import com.springviz.backend.service.AnalysisService;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.MediaType;
@@ -13,8 +14,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/analysis")
@@ -26,13 +25,9 @@ public class AnalysisController {
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<List<String>> analyzeProject(@RequestParam("file") @NotNull MultipartFile file) throws IOException {
-        List<AnalyzedClass> javaFiles = analysisService.analyze(file);
+    public ResponseEntity<GraphResponse> analyzeProject(@RequestParam("file") @NotNull MultipartFile file) throws IOException {
+        GraphResponse response = analysisService.analyze(file);
 
-        List<String> result = javaFiles.stream()
-                .map(AnalyzedClass::toString)
-                .toList();
-
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(response);
     }
 }

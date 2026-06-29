@@ -1,11 +1,20 @@
 package com.springviz.backend.graph;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 
 public class GraphResponse {
+    @JsonProperty("project_name")
     private String projectName;
     private List<GraphNode> nodes;
     private List<GraphEdge> edges;
+
+    public GraphResponse(List<GraphNode> nodes, List<GraphEdge> edges) {
+        this.nodes = nodes;
+        this.edges = edges;
+    }
 
     public String getProjectName() {
         return projectName;

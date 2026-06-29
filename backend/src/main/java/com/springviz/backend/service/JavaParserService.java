@@ -44,6 +44,9 @@ public class JavaParserService {
                     .map(packageDeclaration -> packageDeclaration.getName().asString())
                     .orElse("");
 
+
+            // TODO: just nu hittar bara första huvududtypen i filen, behöver uppdateras senare till att hitta alla.
+            // innebär att hela denna metod behöver returnera en lista av klasser istället för bara en klass
             Optional<TypeDeclaration<?>> typeDeclaration = compilationUnit.getTypes()
                     .stream()
                     .findFirst();
@@ -52,15 +55,25 @@ public class JavaParserService {
                 return Optional.empty();
             }
 
+            // hämta klassnamn
             String className = typeDeclaration.get().getNameAsString();
 
+            // hämta annotations
             List<String> annotations = typeDeclaration.get()
                     .getAnnotations()
                     .stream()
                     .map(annotation -> annotation.getName().asString())
                     .toList();
 
-            AnalyzedClass analyzedClass = new AnalyzedClass(packageName, className, annotations);
+            // hämta konstruktor-depencies
+            List<String> dependencies = typeDeclaration.get()
+                    .getConstructors()
+                    .stream()
+                    .flatMap(constructor -> constructor.getParameters().stream())
+                    .map(parameter -> parameter.getType().asString())
+                    .toList();
+
+            AnalyzedClass analyzedClass = new AnalyzedClass(packageName, className, annotations, dependencies);
 
             return Optional.of(analyzedClass);
         } catch (IOException ex) {
