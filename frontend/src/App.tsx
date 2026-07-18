@@ -1,25 +1,35 @@
-import { VisualizerScene } from './components/three/VisualizerScene'
+import { lazy, Suspense, useState } from 'react'
+
+import { FileUploadCard } from './features/file-upload/components/FileUploadCard'
+import type { GraphResponse } from './types/graph'
+
+const GraphVisualizerScene = lazy(
+  () => import('./features/graph-visualizer/components/GraphVisualizerScene'),
+)
 
 function App() {
-  return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
-      <section className="mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-10 lg:px-10">
-        <header className="mb-8">
-          <p className="mb-3 text-sm font-semibold tracking-[0.2em] text-cyan-400 uppercase">
-            Spring Boot + React
-          </p>
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-            Software Visualizer
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-slate-400">
-            Frontenden är redo för Tailwind CSS och återanvändbara Three.js-komponenter.
-            Dra i scenen för att rotera och scrolla för att zooma.
-          </p>
-        </header>
+  const [graphResponse, setGraphResponse] = useState<GraphResponse | null>(null)
 
-        <div className="min-h-[480px] flex-1 overflow-hidden rounded-3xl border border-white/10 bg-slate-900 shadow-2xl shadow-cyan-950/30">
-          <VisualizerScene />
-        </div>
+  if (graphResponse) {
+    return (
+      <Suspense
+        fallback={
+          <main className="flex min-h-screen items-center justify-center bg-[#080b12] text-sm text-slate-400">
+            Building scene…
+          </main>
+        }
+      >
+        <GraphVisualizerScene graphResponse={graphResponse} />
+      </Suspense>
+    )
+  }
+
+  return (
+    <main className="min-h-screen overflow-hidden bg-[#080b12] text-slate-100">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.055),transparent_36%)]" />
+
+      <section className="relative flex min-h-screen items-center justify-center px-6 py-10">
+        <FileUploadCard onAnalysisComplete={setGraphResponse} />
       </section>
     </main>
   )
