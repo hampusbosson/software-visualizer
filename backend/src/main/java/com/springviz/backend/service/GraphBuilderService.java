@@ -12,14 +12,14 @@ import java.util.List;
 @Service
 public class GraphBuilderService {
 
-    public GraphResponse build(List<AnalyzedClass> classes) {
+    public GraphResponse build(List<AnalyzedClass> classes, String projectName) {
         List<GraphNode> nodes = classes.stream()
                 .map(this::toNode)
                 .toList();
 
         List<GraphEdge> edges = List.of();
 
-        return new GraphResponse(nodes, edges);
+        return new GraphResponse(nodes, edges, projectName);
     }
 
     private GraphNode toNode(AnalyzedClass analyzedClass) {

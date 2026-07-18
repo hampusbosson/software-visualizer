@@ -1,6 +1,5 @@
 package com.springviz.backend.controller;
 
-import com.springviz.backend.analysis.AnalyzedClass;
 import com.springviz.backend.graph.GraphResponse;
 import com.springviz.backend.service.AnalysisService;
 import jakarta.validation.constraints.NotNull;
@@ -28,6 +27,6 @@ public class AnalysisController {
     public ResponseEntity<GraphResponse> analyzeProject(@RequestParam("file") @NotNull MultipartFile file) throws IOException {
         GraphResponse response = analysisService.analyze(file);
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(201).body(response);
     }
 }

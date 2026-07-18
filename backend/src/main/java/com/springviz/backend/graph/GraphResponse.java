@@ -11,9 +11,10 @@ public class GraphResponse {
     private List<GraphNode> nodes;
     private List<GraphEdge> edges;
 
-    public GraphResponse(List<GraphNode> nodes, List<GraphEdge> edges) {
+    public GraphResponse(List<GraphNode> nodes, List<GraphEdge> edges, String projectName) {
         this.nodes = nodes;
         this.edges = edges;
+        this.projectName = projectName;
     }
 
     public String getProjectName() {

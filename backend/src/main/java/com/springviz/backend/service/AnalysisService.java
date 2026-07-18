@@ -33,6 +33,8 @@ public class AnalysisService {
             throw new IllegalArgumentException("Only zip files are allowed");
         }
 
+        String projectName = getProjectName(file);
+
         // 1. Extract zip
         Path projectDirectory = zipExtractionService.extract(file);
         // 2. Find Java files
@@ -40,9 +42,27 @@ public class AnalysisService {
         // 3. parse Java files
         List<AnalyzedClass> classes = javaParserService.parse(javaFiles);
         // 4. Build graph
-        GraphResponse graph = graphBuilderService.build(classes);
+        GraphResponse graph = graphBuilderService.build(classes, projectName);
 
         return graph;
+    }
+
+    private String getProjectName(MultipartFile file) {
+        String originalFilename = file.getOriginalFilename();
+
+        if (originalFilename == null || originalFilename.isBlank()) {
+            return "unnamed project";
+        }
+
+        String fileName = Path.of(originalFilename)
+                .getFileName()
+                .toString();
+
+        if (fileName.toLowerCase().endsWith(".zip")) {
+            return fileName.substring(0, fileName.length() - 4);
+        }
+
+        return fileName;
     }
 
 
