@@ -8,10 +8,10 @@ import type { GraphResponse } from '../../../types/graph'
 import { analyzeFile } from '../api/upload-file'
 
 type FileUploadCardProps = {
-  onAnalysisComplete: (graphResponse: GraphResponse) => void
+  setGraphResponse: (graphResponse: GraphResponse) => void
 }
 
-export function FileUploadCard({ onAnalysisComplete }: FileUploadCardProps) {
+export function FileUploadCard({ setGraphResponse }: FileUploadCardProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [uploadState, setUploadState] = useState<UploadState>('idle')
@@ -59,7 +59,7 @@ export function FileUploadCard({ onAnalysisComplete }: FileUploadCardProps) {
     try {
       const graphResponse = await analyzeFile(file)
       setUploadState('success')
-      onAnalysisComplete(graphResponse)
+      setGraphResponse(graphResponse)
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Upload failed')
       setUploadState('error')

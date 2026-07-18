@@ -1,5 +1,9 @@
 import type { GraphResponse } from '../../../types/graph'
 
+type GraphApiResponse = Omit<GraphResponse, 'projectName'> & {
+  project_name?: string | null
+}
+
 export async function analyzeFile(file: File): Promise<GraphResponse> {
   const formData = new FormData()
   formData.append('file', file)
@@ -14,9 +18,13 @@ export async function analyzeFile(file: File): Promise<GraphResponse> {
     throw new Error(errorText || `Analysis failed with status ${response.status}`)
   }
 
-  const grapResponse: GraphResponse = await response.json();
+  const graphApiResponse = (await response.json()) as GraphApiResponse
 
-  console.log(grapResponse);
+  console.log(graphApiResponse);
 
-  return grapResponse
+  return {
+    nodes: graphApiResponse.nodes,
+    edges: graphApiResponse.edges,
+    projectName: graphApiResponse.project_name,
+  }
 }
