@@ -15,19 +15,27 @@ export function GraphVisualizerScene({ graphResponse }: GraphVisualizerSceneProp
   const sceneGraphResponse =
     graphResponse.nodes.length > 0 ? graphResponse : mockGraphResponse
 
+  function clearSelection() {
+    setSelectedNode(null)
+  }
+
+  function selectNode(node: GraphNode) {
+    setSelectedNode(node)
+  }
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#080b12]">
       <ProjectTreeSidebar
         graphResponse={sceneGraphResponse}
-        onSelectNode={setSelectedNode}
+        onSelectNode={selectNode}
         selectedNodeId={selectedNode?.id ?? null}
       />
 
       <main className="relative min-w-0 flex-1">
         <ProjectScene
           graphResponse={sceneGraphResponse}
-          onClearSelection={() => setSelectedNode(null)}
-          onSelectNode={setSelectedNode}
+          onClearSelection={clearSelection}
+          onSelectNode={selectNode}
           selectedNode={selectedNode}
         />
       </main>

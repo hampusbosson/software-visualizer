@@ -8,7 +8,11 @@ import type { SemanticZoomLevel } from '../three/semanticZoom'
 
 type ClassBuildingProps = {
   building: BuildingLayout
+  hasRelationshipFocus: boolean
   hoveredNodeId: string | null
+  labelsVisibleInSelection: boolean
+  relatedNodeIds: Set<string>
+  selectedEdgeActive: boolean
   selectedNodeId: string | null
   zoomLevel: SemanticZoomLevel
   onHover: (node: GraphNode | null) => void
@@ -17,7 +21,11 @@ type ClassBuildingProps = {
 
 export function ClassBuilding({
   building,
+  hasRelationshipFocus,
   hoveredNodeId,
+  labelsVisibleInSelection,
+  relatedNodeIds,
+  selectedEdgeActive,
   selectedNodeId,
   zoomLevel,
   onHover,
@@ -26,10 +34,25 @@ export function ClassBuilding({
   const style = getNodeStyle(building.node)
   const isHovered = hoveredNodeId === building.node.id
   const isSelected = selectedNodeId === building.node.id
+  const isRelated = relatedNodeIds.has(building.node.id)
   const hasSelection = selectedNodeId !== null
-  const opacity = hasSelection && !isSelected ? 0.34 : 1
-  const showClassName = zoomLevel !== 'far' && (!hasSelection || isSelected || isHovered)
-  const showTypeLabel = zoomLevel === 'near'
+  const opacity =
+    hasSelection || selectedEdgeActive
+      ? isSelected || isRelated
+        ? 1
+        : 0.26
+      : hasRelationshipFocus
+        ? isHovered || isRelated
+          ? 1
+          : 0.48
+        : 1
+  const showClassName =
+    !isSelected &&
+    ((hasSelection && labelsVisibleInSelection) ||
+      (zoomLevel !== 'far' && (!hasSelection || isHovered || (selectedEdgeActive && isRelated))))
+
+  const showTypeLabel =
+    (hasSelection && labelsVisibleInSelection && !isSelected) || zoomLevel === 'near'
 
   function handlePointerOver(event: ThreeEvent<PointerEvent>) {
     event.stopPropagation()
@@ -51,8 +74,6 @@ export function ClassBuilding({
   return (
     <group position={building.position}>
       <mesh
-        castShadow
-        receiveShadow
         onClick={handleClick}
         onPointerOut={handlePointerOut}
         onPointerOver={handlePointerOver}
@@ -61,7 +82,7 @@ export function ClassBuilding({
         <meshStandardMaterial
           color={isHovered || isSelected ? style.accentColor : style.baseColor}
           emissive={style.accentColor}
-          emissiveIntensity={isHovered || isSelected ? 0.28 : 0.1}
+          emissiveIntensity={isHovered || isSelected || isRelated ? 0.34 : 0.16}
           metalness={0.18}
           opacity={opacity}
           roughness={0.48}

@@ -7,8 +7,8 @@ export type GraphNode = {
 }
 
 export type GraphEdge = {
-  from: string
-  to: string
+  source: string
+  target: string
   type?: string
 }
 

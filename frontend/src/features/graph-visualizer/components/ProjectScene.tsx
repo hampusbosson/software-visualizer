@@ -5,13 +5,21 @@ import { PerspectiveCamera, Vector3 } from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 
 import type { GraphNode, GraphResponse } from '../../../types/graph'
-import { fitCameraToBounds, moveCameraTowardSelection } from '../three/cameraUtils'
-import { createProjectLayout } from '../three/sceneLayout'
+import {
+  fitCameraToBounds,
+  moveCameraTowardDistrict,
+} from '../three/cameraUtils'
+import { createBuildingsByNodeId, createProjectLayout } from '../three/sceneLayout'
 import type { ProjectLayout } from '../three/sceneLayout'
+import { createEdgeLayouts } from '../three/edges/createEdgeCurve'
+import type { EdgeLayout } from '../three/edges/createEdgeCurve'
+import { createPackageRelationLayouts } from '../three/packageRelations'
 import { getSemanticZoomLevel } from '../three/semanticZoom'
 import type { SemanticZoomLevel } from '../three/semanticZoom'
 import { NodeDetailsPanel } from './NodeDetailsPanel'
 import { PackageDistrict } from './PackageDistrict'
+import { PackageRelationCables } from './PackageRelationCables'
+import { RelationshipEdges } from './RelationshipEdges'
 
 type ProjectSceneProps = {
   graphResponse: GraphResponse
@@ -27,10 +35,27 @@ export function ProjectScene({
   selectedNode,
 }: ProjectSceneProps) {
   const layout = useMemo(() => createProjectLayout(graphResponse.nodes), [graphResponse.nodes])
+  const buildingsByNodeId = useMemo(() => createBuildingsByNodeId(layout), [layout])
+  const edgeLayouts = useMemo(
+    () => createEdgeLayouts(graphResponse.edges, buildingsByNodeId),
+    [buildingsByNodeId, graphResponse.edges],
+  )
+  const packageRelationLayouts = useMemo(
+    () => createPackageRelationLayouts(layout.districts),
+    [layout.districts],
+  )
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null)
   const selectedBuilding = useMemo(
     () => findBuildingByNodeId(layout, selectedNode?.id ?? null),
     [layout, selectedNode],
+  )
+  const selectedDistrict = useMemo(
+    () => findDistrictByNodeId(layout, selectedNode?.id ?? null),
+    [layout, selectedNode],
+  )
+  const relatedNodeIds = useMemo(
+    () => getRelatedNodeIds(edgeLayouts, selectedNode?.id ?? null, hoveredNode?.id ?? null),
+    [edgeLayouts, hoveredNode, selectedNode],
   )
 
   function clearSelection() {
@@ -39,19 +64,26 @@ export function ProjectScene({
     onClearSelection()
   }
 
+  function handleSelectNode(node: GraphNode) {
+    onSelectNode(node)
+  }
+
   return (
     <div className="relative h-full w-full">
       <Canvas
         camera={{ position: [6, 5, 6], fov: 45 }}
         onPointerMissed={clearSelection}
-        shadows
       >
         <SceneContent
           hoveredNodeId={hoveredNode?.id ?? null}
+          edgeLayouts={edgeLayouts}
           layout={layout}
+          packageRelationLayouts={packageRelationLayouts}
+          relatedNodeIds={relatedNodeIds}
           selectedBuilding={selectedBuilding}
+          selectedDistrict={selectedDistrict}
           setHoveredNode={setHoveredNode}
-          setSelectedNode={onSelectNode}
+          setSelectedNode={handleSelectNode}
         />
       </Canvas>
 
@@ -61,17 +93,25 @@ export function ProjectScene({
 }
 
 type SceneContentProps = {
+  edgeLayouts: EdgeLayout[]
   hoveredNodeId: string | null
   layout: ProjectLayout
+  packageRelationLayouts: ReturnType<typeof createPackageRelationLayouts>
+  relatedNodeIds: Set<string>
   selectedBuilding: ReturnType<typeof findBuildingByNodeId>
+  selectedDistrict: ReturnType<typeof findDistrictByNodeId>
   setHoveredNode: (node: GraphNode | null) => void
   setSelectedNode: (node: GraphNode) => void
 }
 
 function SceneContent({
+  edgeLayouts,
   hoveredNodeId,
   layout,
+  packageRelationLayouts,
+  relatedNodeIds,
   selectedBuilding,
+  selectedDistrict,
   setHoveredNode,
   setSelectedNode,
 }: SceneContentProps) {
@@ -91,15 +131,12 @@ function SceneContent({
       return
     }
 
-    if (selectedBuilding) {
-      moveCameraTowardSelection(
+    if (selectedDistrict) {
+      moveCameraTowardDistrict(
         camera,
         controlsRef.current,
-        new Vector3(
-          selectedBuilding.position[0],
-          selectedBuilding.position[1],
-          selectedBuilding.position[2],
-        ),
+        new Vector3(selectedDistrict.center[0], 0, selectedDistrict.center[2]),
+        Math.max(selectedDistrict.width, selectedDistrict.depth),
       )
     } else {
       controlsRef.current.target.lerp(layout.center, 0.04)
@@ -121,24 +158,35 @@ function SceneContent({
       <color attach="background" args={['#080b12']} />
       <fog attach="fog" args={['#080b12', 24, 90]} />
 
-      <ambientLight intensity={0.85} />
+      <ambientLight intensity={1.25} />
+      <hemisphereLight args={['#dbeafe', '#0f172a', 1.1]} />
       <directionalLight
-        castShadow
         color="#e0f2fe"
-        intensity={2.4}
+        intensity={1.6}
         position={[10, 14, 8]}
-        shadow-mapSize-height={1024}
-        shadow-mapSize-width={1024}
       />
 
       <group position={[0, 0, 0]}>
         <gridHelper args={[120, 120, '#1e293b', '#0f172a']} position={[0, -0.08, 0]} />
 
+        <PackageRelationCables relations={packageRelationLayouts} />
+
+        <RelationshipEdges
+          edgeLayouts={edgeLayouts}
+          hoveredNodeId={hoveredNodeId}
+          selectedNodeId={selectedBuilding?.node.id ?? null}
+          zoomLevel={zoomLevel}
+        />
+
         {layout.districts.map((district) => (
           <PackageDistrict
             key={district.id}
             district={district}
+            hasRelationshipFocus={hoveredNodeId !== null}
             hoveredNodeId={hoveredNodeId}
+            relatedNodeIds={relatedNodeIds}
+            selectedEdgeActive={false}
+            selectedDistrictId={selectedDistrict?.id ?? null}
             selectedNodeId={selectedBuilding?.node.id ?? null}
             zoomLevel={zoomLevel}
             onHover={setHoveredNode}
@@ -177,4 +225,48 @@ function findBuildingByNodeId(layout: ProjectLayout, nodeId: string | null) {
   }
 
   return null
+}
+
+function findDistrictByNodeId(layout: ProjectLayout, nodeId: string | null) {
+  if (!nodeId) {
+    return null
+  }
+
+  return (
+    layout.districts.find((district) =>
+      district.buildings.some((building) => building.node.id === nodeId),
+    ) ?? null
+  )
+}
+
+function getRelatedNodeIds(
+  edgeLayouts: EdgeLayout[],
+  selectedNodeId: string | null,
+  hoveredNodeId: string | null,
+) {
+  if (selectedNodeId) {
+    return getConnectedNodeIds(edgeLayouts, selectedNodeId)
+  }
+
+  if (hoveredNodeId) {
+    return getConnectedNodeIds(edgeLayouts, hoveredNodeId)
+  }
+
+  return new Set<string>()
+}
+
+function getConnectedNodeIds(edgeLayouts: EdgeLayout[], nodeId: string) {
+  const connectedNodeIds = new Set<string>([nodeId])
+
+  edgeLayouts.forEach((edgeLayout) => {
+    if (edgeLayout.edge.source === nodeId) {
+      connectedNodeIds.add(edgeLayout.edge.target)
+    }
+
+    if (edgeLayout.edge.target === nodeId) {
+      connectedNodeIds.add(edgeLayout.edge.source)
+    }
+  })
+
+  return connectedNodeIds
 }

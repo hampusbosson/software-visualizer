@@ -30,6 +30,7 @@ const BUILDING_DEPTH = 0.9
 const BUILDING_SPACING = 2.25
 const DISTRICT_PADDING = 1.75
 const DISTRICT_GAP = 3.5
+const MIN_BRANCH_RADIUS = 7
 
 export function createProjectLayout(nodes: GraphNode[]): ProjectLayout {
   const districts = createDistricts(groupNodesByPackage(nodes))
@@ -41,6 +42,18 @@ export function createProjectLayout(nodes: GraphNode[]): ProjectLayout {
     bounds,
     center,
   }
+}
+
+export function createBuildingsByNodeId(layout: ProjectLayout) {
+  const buildingsByNodeId = new Map<string, BuildingLayout>()
+
+  layout.districts.forEach((district) => {
+    district.buildings.forEach((building) => {
+      buildingsByNodeId.set(building.node.id, building)
+    })
+  })
+
+  return buildingsByNodeId
 }
 
 function groupNodesByPackage(nodes: GraphNode[]) {
@@ -62,9 +75,7 @@ function createDistricts(groupedNodes: Record<string, GraphNode[]>): DistrictLay
 
     return {
       packageName,
-      nodes: [...nodes].sort((firstNode, secondNode) =>
-        firstNode.label.localeCompare(secondNode.label),
-      ),
+      nodes: sortNodesForDistrict(nodes),
       columns,
       rows,
       width: Math.max(3.4, (columns - 1) * BUILDING_SPACING + BUILDING_WIDTH + DISTRICT_PADDING * 2),
@@ -72,27 +83,10 @@ function createDistricts(groupedNodes: Record<string, GraphNode[]>): DistrictLay
     }
   })
 
-  const districtColumns = Math.max(1, Math.ceil(Math.sqrt(districtDrafts.length)))
-  const rowHeights: number[] = []
-  const columnWidths: number[] = []
+  const districtCenters = createRadialDistrictCenters(districtDrafts)
 
-  districtDrafts.forEach((district, index) => {
-    const row = Math.floor(index / districtColumns)
-    const column = index % districtColumns
-    rowHeights[row] = Math.max(rowHeights[row] ?? 0, district.depth)
-    columnWidths[column] = Math.max(columnWidths[column] ?? 0, district.width)
-  })
-
-  const totalWidth = columnWidths.reduce((sum, width) => sum + width, 0) + DISTRICT_GAP * (districtColumns - 1)
-  const totalDepth = rowHeights.reduce((sum, depth) => sum + depth, 0) + DISTRICT_GAP * (rowHeights.length - 1)
-
-  const columnCenters = createAxisCenters(columnWidths, totalWidth)
-  const rowCenters = createAxisCenters(rowHeights, totalDepth)
-
-  return districtDrafts.map((district, index) => {
-    const row = Math.floor(index / districtColumns)
-    const column = index % districtColumns
-    const center: [number, number, number] = [columnCenters[column], 0, rowCenters[row]]
+  return districtDrafts.map((district) => {
+    const center = districtCenters.get(district.packageName) ?? [0, 0, 0]
 
     return {
       id: district.packageName,
@@ -105,37 +99,197 @@ function createDistricts(groupedNodes: Record<string, GraphNode[]>): DistrictLay
   })
 }
 
+type DistrictDraft = {
+  packageName: string
+  nodes: GraphNode[]
+  columns: number
+  rows: number
+  width: number
+  depth: number
+}
+
+type PackageLayoutNode = {
+  children: PackageLayoutNode[]
+  packageName: string
+  parentPackageName: string | null
+}
+
+function createRadialDistrictCenters(districtDrafts: DistrictDraft[]) {
+  const centers = new Map<string, [number, number, number]>()
+
+  if (districtDrafts.length === 0) {
+    return centers
+  }
+
+  const nodesByPackageName = createPackageLayoutNodes(districtDrafts)
+  const roots = [...nodesByPackageName.values()]
+    .filter((node) => node.parentPackageName === null)
+    .sort(comparePackageNodes)
+  const maxDistrictSize = Math.max(
+    ...districtDrafts.map((district) => Math.max(district.width, district.depth)),
+  )
+  const ringStep = Math.max(MIN_BRANCH_RADIUS, maxDistrictSize + DISTRICT_GAP)
+
+  if (roots.length === 1) {
+    const [root] = roots
+    centers.set(root.packageName, [0, 0, 0])
+    placeChildBranches(root, 0, Math.PI * 2, 1, ringStep, centers)
+
+    return centers
+  }
+
+  roots.forEach((root, index) => {
+    const angle = (index / roots.length) * Math.PI * 2 - Math.PI / 2
+    const rootRadius = ringStep
+
+    centers.set(root.packageName, [
+      Math.cos(angle) * rootRadius,
+      0,
+      Math.sin(angle) * rootRadius,
+    ])
+    placeChildBranches(
+      root,
+      angle - Math.PI / roots.length,
+      angle + Math.PI / roots.length,
+      2,
+      ringStep,
+      centers,
+    )
+  })
+
+  return centers
+}
+
+function createPackageLayoutNodes(districtDrafts: DistrictDraft[]) {
+  const nodesByPackageName = new Map<string, PackageLayoutNode>()
+
+  districtDrafts.forEach((draft) => {
+    nodesByPackageName.set(draft.packageName, {
+      children: [],
+      packageName: draft.packageName,
+      parentPackageName: null,
+    })
+  })
+
+  nodesByPackageName.forEach((node) => {
+    const parentPackageName = findNearestParentPackageName(node.packageName, nodesByPackageName)
+
+    node.parentPackageName = parentPackageName
+
+    if (parentPackageName) {
+      nodesByPackageName.get(parentPackageName)?.children.push(node)
+    }
+  })
+
+  nodesByPackageName.forEach((node) => {
+    node.children.sort(comparePackageNodes)
+  })
+
+  return nodesByPackageName
+}
+
+function placeChildBranches(
+  parent: PackageLayoutNode,
+  startAngle: number,
+  endAngle: number,
+  depth: number,
+  ringStep: number,
+  centers: Map<string, [number, number, number]>,
+) {
+  if (parent.children.length === 0) {
+    return
+  }
+
+  const angleSpan = endAngle - startAngle
+
+  parent.children.forEach((child, index) => {
+    const segmentStart = startAngle + (angleSpan * index) / parent.children.length
+    const segmentEnd = startAngle + (angleSpan * (index + 1)) / parent.children.length
+    const angle = (segmentStart + segmentEnd) / 2
+    const radius = ringStep * depth
+
+    centers.set(child.packageName, [
+      Math.cos(angle) * radius,
+      0,
+      Math.sin(angle) * radius,
+    ])
+
+    placeChildBranches(child, segmentStart, segmentEnd, depth + 1, ringStep, centers)
+  })
+}
+
+function findNearestParentPackageName(
+  packageName: string,
+  nodesByPackageName: Map<string, PackageLayoutNode>,
+) {
+  const packageParts = packageName.split('.')
+
+  for (let length = packageParts.length - 1; length > 0; length -= 1) {
+    const parentPackageName = packageParts.slice(0, length).join('.')
+
+    if (nodesByPackageName.has(parentPackageName)) {
+      return parentPackageName
+    }
+  }
+
+  return null
+}
+
+function comparePackageNodes(firstNode: PackageLayoutNode, secondNode: PackageLayoutNode) {
+  return firstNode.packageName.localeCompare(secondNode.packageName)
+}
+
 function createBuildings(
   nodes: GraphNode[],
   columns: number,
   rows: number,
   districtCenter: [number, number, number],
 ): BuildingLayout[] {
+  const rootNode = nodes.find((node) => getNodeLayoutPriority(node) === 0)
+
+  if (rootNode && nodes.length > 1) {
+    const surroundingNodes = nodes.filter((node) => node.id !== rootNode.id)
+
+    return [
+      createBuilding(rootNode, districtCenter, [0, 0]),
+      ...surroundingNodes.map((node, index) => {
+        const angle = (index / surroundingNodes.length) * Math.PI * 2 - Math.PI / 2
+        const localX = Math.cos(angle) * BUILDING_SPACING
+        const localZ = Math.sin(angle) * BUILDING_SPACING
+
+        return createBuilding(node, districtCenter, [localX, localZ])
+      }),
+    ]
+  }
+
   return nodes.map((node, index) => {
     const column = index % columns
     const row = Math.floor(index / columns)
-    const style = getNodeStyle(node)
     const localX = (column - (columns - 1) / 2) * BUILDING_SPACING
     const localZ = (row - (rows - 1) / 2) * BUILDING_SPACING
-    const height = style.height
 
-    return {
-      id: node.id,
-      node,
-      position: [districtCenter[0] + localX, height / 2, districtCenter[2] + localZ],
-      size: [BUILDING_WIDTH, height, BUILDING_DEPTH],
-    }
+    return createBuilding(node, districtCenter, [localX, localZ])
   })
 }
 
-function createAxisCenters(sizes: number[], totalSize: number) {
-  let cursor = -totalSize / 2
+function createBuilding(
+  node: GraphNode,
+  districtCenter: [number, number, number],
+  localPosition: [number, number],
+): BuildingLayout {
+  const style = getNodeStyle(node)
+  const height = style.height
 
-  return sizes.map((size) => {
-    const center = cursor + size / 2
-    cursor += size + DISTRICT_GAP
-    return center
-  })
+  return {
+    id: node.id,
+    node,
+    position: [
+      districtCenter[0] + localPosition[0],
+      height / 2,
+      districtCenter[2] + localPosition[1],
+    ],
+    size: [BUILDING_WIDTH, height, BUILDING_DEPTH],
+  }
 }
 
 function createBounds(districts: DistrictLayout[]) {
@@ -163,4 +317,31 @@ function createBounds(districts: DistrictLayout[]) {
 
 function getPackageNameFromId(id: string) {
   return id.split('.').slice(0, -1).join('.') || 'default'
+}
+
+function sortNodesForDistrict(nodes: GraphNode[]) {
+  return [...nodes].sort((firstNode, secondNode) => {
+    const firstPriority = getNodeLayoutPriority(firstNode)
+    const secondPriority = getNodeLayoutPriority(secondNode)
+
+    if (firstPriority !== secondPriority) {
+      return firstPriority - secondPriority
+    }
+
+    return firstNode.label.localeCompare(secondNode.label)
+  })
+}
+
+function getNodeLayoutPriority(node: GraphNode) {
+  const type = node.type.toUpperCase()
+
+  if (type === 'APPLICATION') {
+    return 0
+  }
+
+  if (node.annotations?.some((annotation) => annotation === 'SpringBootApplication')) {
+    return 0
+  }
+
+  return 1
 }

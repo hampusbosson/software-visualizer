@@ -1,8 +1,17 @@
-import type { GraphResponse } from '../../../types/graph'
+import type { GraphEdge, GraphResponse } from '../../../types/graph'
 
 type GraphApiResponse = Omit<GraphResponse, 'projectName'> & {
+  edges: GraphApiEdge[]
   project_name?: string | null
 }
+
+type GraphApiEdge =
+  | GraphEdge
+  | {
+      from: string
+      to: string
+      type?: string
+    }
 
 export async function analyzeFile(file: File): Promise<GraphResponse> {
   const formData = new FormData()
@@ -24,7 +33,19 @@ export async function analyzeFile(file: File): Promise<GraphResponse> {
 
   return {
     nodes: graphApiResponse.nodes,
-    edges: graphApiResponse.edges,
+    edges: graphApiResponse.edges.map(normalizeEdge),
     projectName: graphApiResponse.project_name,
+  }
+}
+
+function normalizeEdge(edge: GraphApiEdge): GraphEdge {
+  if ('source' in edge && 'target' in edge) {
+    return edge
+  }
+
+  return {
+    source: edge.from,
+    target: edge.to,
+    type: edge.type,
   }
 }

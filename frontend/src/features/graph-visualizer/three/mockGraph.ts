@@ -2,8 +2,25 @@ import type { GraphResponse } from '../../../types/graph'
 
 export const mockGraphResponse: GraphResponse = {
   projectName: 'backend',
-  edges: [],
+  edges: [
+    {
+      source: 'com.example.course.CourseController',
+      target: 'com.example.course.CourseService',
+      type: 'DEPENDS_ON',
+    },
+    {
+      source: 'com.example.course.CourseService',
+      target: 'com.example.course.CourseRepository',
+      type: 'DEPENDS_ON',
+    },
+  ],
   nodes: [
+    {
+      id: 'com.example.BackendApplication',
+      label: 'BackendApplication',
+      type: 'APPLICATION',
+      packageName: 'com.example',
+    },
     {
       id: 'com.example.course.CourseController',
       label: 'CourseController',

@@ -7,7 +7,11 @@ import { ClassBuilding } from './ClassBuilding'
 
 type PackageDistrictProps = {
   district: DistrictLayout
+  hasRelationshipFocus: boolean
   hoveredNodeId: string | null
+  relatedNodeIds: Set<string>
+  selectedEdgeActive: boolean
+  selectedDistrictId: string | null
   selectedNodeId: string | null
   zoomLevel: SemanticZoomLevel
   onHover: (node: GraphNode | null) => void
@@ -16,24 +20,31 @@ type PackageDistrictProps = {
 
 export function PackageDistrict({
   district,
+  hasRelationshipFocus,
   hoveredNodeId,
+  relatedNodeIds,
+  selectedEdgeActive,
+  selectedDistrictId,
   selectedNodeId,
   zoomLevel,
   onHover,
   onSelect,
 }: PackageDistrictProps) {
-  const showPackageLabel = zoomLevel !== 'near'
+  const hasSelectedDistrict = selectedDistrictId !== null
+  const isSelectedDistrict = selectedDistrictId === district.id
+  const showPackageLabel = zoomLevel !== 'near' && (!hasSelectedDistrict || isSelectedDistrict)
+  const packageLabel = formatPackageLabel(district.packageName)
 
   return (
     <group>
-      <mesh receiveShadow position={[district.center[0], -0.035, district.center[2]]}>
+      <mesh position={[district.center[0], -0.035, district.center[2]]}>
         <boxGeometry args={[district.width, 0.06, district.depth]} />
-        <meshStandardMaterial color="#0b1220" roughness={0.8} />
+        <meshBasicMaterial color="#111827" />
       </mesh>
 
       <mesh position={[district.center[0], 0.01, district.center[2]]}>
         <boxGeometry args={[district.width + 0.05, 0.035, district.depth + 0.05]} />
-        <meshBasicMaterial color="#1e293b" transparent opacity={0.22} wireframe />
+        <meshBasicMaterial color="#334155" transparent opacity={0.34} wireframe />
       </mesh>
 
       {showPackageLabel ? (
@@ -47,7 +58,7 @@ export function PackageDistrict({
           ]}
         >
           <div className="pointer-events-none max-w-72 truncate rounded-md border border-white/10 bg-[#020617]/80 px-3 py-1.5 text-xs font-semibold text-cyan-100 shadow-lg shadow-black/20 backdrop-blur">
-            {district.packageName}
+            {packageLabel}
           </div>
         </Html>
       ) : null}
@@ -56,7 +67,11 @@ export function PackageDistrict({
         <ClassBuilding
           key={building.id}
           building={building}
+          hasRelationshipFocus={hasRelationshipFocus}
           hoveredNodeId={hoveredNodeId}
+          labelsVisibleInSelection={!hasSelectedDistrict || isSelectedDistrict}
+          relatedNodeIds={relatedNodeIds}
+          selectedEdgeActive={selectedEdgeActive}
           selectedNodeId={selectedNodeId}
           zoomLevel={zoomLevel}
           onHover={onHover}
@@ -65,4 +80,14 @@ export function PackageDistrict({
       ))}
     </group>
   )
+}
+
+function formatPackageLabel(packageName: string) {
+  const parts = packageName.split('.').filter(Boolean)
+
+  if (parts.length <= 2) {
+    return packageName
+  }
+
+  return parts.slice(-2).join('.')
 }
