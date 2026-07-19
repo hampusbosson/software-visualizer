@@ -7,7 +7,11 @@ import com.springviz.backend.graph.GraphResponse;
 import com.springviz.backend.graph.NodeType;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class GraphBuilderService {
@@ -17,7 +21,7 @@ public class GraphBuilderService {
                 .map(this::toNode)
                 .toList();
 
-        List<GraphEdge> edges = List.of();
+        List<GraphEdge> edges = buildEdges(classes, nodes);
 
         return new GraphResponse(nodes, edges, projectName);
     }
@@ -34,6 +38,37 @@ public class GraphBuilderService {
 
     private String getFullName(AnalyzedClass analyzedClass) {
         return analyzedClass.getPackageName() + "." + analyzedClass.getClassName();
+    }
+
+    private List<GraphEdge> buildEdges(List<AnalyzedClass> classes, List<GraphNode> nodes) {
+        Map<String, GraphNode> nodesBySimpleName = nodes.stream()
+                .collect(Collectors.toMap(
+                        GraphNode::getLabel,
+                        Function.identity(),
+                        (existing, duplicate) -> existing
+                ));
+
+        List<GraphEdge> edges = new ArrayList<>();
+
+        for (AnalyzedClass parsedClass : classes) {
+            GraphNode sourceNode = nodesBySimpleName.get(parsedClass.getClassName());
+
+            if (sourceNode == null) continue;
+
+            for (String dependencyName : parsedClass.getDependencies()) {
+                GraphNode targetNode = nodesBySimpleName.get(dependencyName);
+
+                if (targetNode == null) continue;
+
+                edges.add(new GraphEdge(
+                        sourceNode.getId(),
+                        targetNode.getId(),
+                        "DEPENDS_ON"
+                ));
+            }
+        }
+
+        return edges;
     }
 
     private NodeType getNodeType(AnalyzedClass analyzedClass) {

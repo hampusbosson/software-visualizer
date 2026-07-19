@@ -6,6 +6,12 @@ public class GraphEdge {
     private String to;
     private String type;
 
+    public GraphEdge(String from, String to, String type) {
+        this.from = from;
+        this.to = to;
+        this.type = type;
+    }
+
     public String getFrom() {
         return from;
     }
