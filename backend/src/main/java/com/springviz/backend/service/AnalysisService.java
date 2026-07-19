@@ -1,6 +1,6 @@
 package com.springviz.backend.service;
 
-import com.springviz.backend.analysis.AnalyzedClass;
+import com.springviz.backend.class_analysis.AnalyzedClass;
 import com.springviz.backend.graph.GraphResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;

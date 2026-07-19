@@ -1,6 +1,6 @@
 package com.springviz.backend.service;
 
-import com.springviz.backend.analysis.AnalyzedClass;
+import com.springviz.backend.class_analysis.AnalyzedClass;
 import com.springviz.backend.graph.GraphEdge;
 import com.springviz.backend.graph.GraphNode;
 import com.springviz.backend.graph.GraphResponse;
@@ -32,7 +32,14 @@ public class GraphBuilderService {
                 analyzedClass.getClassName(),
                 getNodeType(analyzedClass),
                 analyzedClass.getPackageName(),
-                analyzedClass.getAnnotations()
+                analyzedClass.getAnnotations(),
+                analyzedClass.getDependencies(),
+                analyzedClass.getMethods(),
+                analyzedClass.getEndpoints(),
+                analyzedClass.getExtendsClass(),
+                analyzedClass.getImplementedInterfaces(),
+                analyzedClass.getFilePath(),
+                analyzedClass.getType()
         );
     }
 
