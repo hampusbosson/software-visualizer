@@ -43,11 +43,11 @@ export function moveCameraTowardDistrict(
 ) {
   controls.target.lerp(target, 0.06)
 
-  const distance = MathUtils.clamp(districtSize * 1.35, 9, 22)
+  const distance = MathUtils.clamp(districtSize * 1.08, 7.5, 17)
   const desiredPosition = new Vector3(
     target.x - distance * 0.42,
-    target.y + distance * 1.05,
-    target.z - distance * 0.42,
+    target.y + distance * 0.75,
+    target.z - distance * 0.82,
   )
 
   camera.position.lerp(desiredPosition, 0.045)

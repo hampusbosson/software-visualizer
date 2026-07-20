@@ -2,9 +2,10 @@ import { useState } from 'react'
 
 import type { GraphNode } from '../../../types/graph'
 import type { GraphResponse } from '../../../types/graph'
+import { ClassDetailsPanel } from '../../class-details/components/ClassDetailsPanel'
+import { ProjectTreeSidebar } from '../../project-sidebar/components/ProjectTreeSidebar'
 import { mockGraphResponse } from '../three/mockGraph'
 import { ProjectScene } from './ProjectScene'
-import { ProjectTreeSidebar } from './ProjectTreeSidebar'
 
 type GraphVisualizerSceneProps = {
   graphResponse: GraphResponse
@@ -39,6 +40,13 @@ export function GraphVisualizerScene({ graphResponse }: GraphVisualizerSceneProp
           selectedNode={selectedNode}
         />
       </main>
+
+      <ClassDetailsPanel
+        graphResponse={sceneGraphResponse}
+        key={selectedNode?.id ?? 'empty-class-details'}
+        node={selectedNode}
+        onClose={clearSelection}
+      />
     </div>
   )
 }

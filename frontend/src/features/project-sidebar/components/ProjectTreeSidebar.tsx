@@ -3,7 +3,7 @@ import type { MouseEvent as ReactMouseEvent } from 'react'
 
 import { ChevronRightIcon, FileCodeIcon, FolderIcon } from '../../../assets/icons'
 import type { GraphNode, GraphResponse } from '../../../types/graph'
-import type { ProjectTreeNode } from '../../../types/project-tree'
+import type { ProjectTreeNode } from '../types/project-tree'
 
 type ProjectTreeSidebarProps = {
   graphResponse: GraphResponse
@@ -84,7 +84,7 @@ export function ProjectTreeSidebar({
         <h2 className="mt-1 truncate text-sm font-semibold text-white">{projectName}</h2>
       </header>
 
-      <div className="flex-1 overflow-auto px-2 py-3">
+      <div className="app-scrollbar flex-1 overflow-auto px-2 py-3">
         <div className="space-y-0.5">
           {tree.map((node) => (
             <ProjectTreeItem

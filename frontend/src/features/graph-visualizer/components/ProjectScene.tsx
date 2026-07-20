@@ -16,7 +16,6 @@ import type { EdgeLayout } from '../three/edges/createEdgeCurve'
 import { createPackageRelationLayouts } from '../three/packageRelations'
 import { getSemanticZoomLevel } from '../three/semanticZoom'
 import type { SemanticZoomLevel } from '../three/semanticZoom'
-import { NodeDetailsPanel } from './NodeDetailsPanel'
 import { PackageDistrict } from './PackageDistrict'
 import { PackageRelationCables } from './PackageRelationCables'
 import { RelationshipEdges } from './RelationshipEdges'
@@ -86,8 +85,6 @@ export function ProjectScene({
           setSelectedNode={handleSelectNode}
         />
       </Canvas>
-
-      <NodeDetailsPanel node={selectedNode} onClose={clearSelection} />
     </div>
   )
 }

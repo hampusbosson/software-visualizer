@@ -1,4 +1,4 @@
-import type { GraphNode } from './graph'
+import type { GraphNode } from '../../../types/graph'
 
 export type ProjectTreeNodeType = 'folder' | 'file'
 
