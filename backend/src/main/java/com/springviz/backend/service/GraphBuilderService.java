@@ -4,7 +4,6 @@ import com.springviz.backend.class_analysis.AnalyzedClass;
 import com.springviz.backend.graph.GraphEdge;
 import com.springviz.backend.graph.GraphNode;
 import com.springviz.backend.graph.GraphResponse;
-import com.springviz.backend.graph.NodeType;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -30,16 +29,16 @@ public class GraphBuilderService {
         return new GraphNode(
                 getFullName(analyzedClass),
                 analyzedClass.getClassName(),
-                getNodeType(analyzedClass),
+                analyzedClass.getNodeType(),
                 analyzedClass.getPackageName(),
                 analyzedClass.getAnnotations(),
                 analyzedClass.getDependencies(),
                 analyzedClass.getMethods(),
                 analyzedClass.getEndpoints(),
-                analyzedClass.getExtendsClass(),
+                analyzedClass.getExtendedTypes(),
                 analyzedClass.getImplementedInterfaces(),
                 analyzedClass.getFilePath(),
-                analyzedClass.getType()
+                analyzedClass.getClassKind()
         );
     }
 
@@ -78,33 +77,4 @@ public class GraphBuilderService {
         return edges;
     }
 
-    private NodeType getNodeType(AnalyzedClass analyzedClass) {
-        List<String> annotations = analyzedClass.getAnnotations();
-
-        if (annotations.contains("RestController") || annotations.contains("Controller")) {
-            return NodeType.CONTROLLER;
-        }
-
-        if (annotations.contains("Service")) {
-            return NodeType.SERVICE;
-        }
-
-        if (annotations.contains("Repository")) {
-            return NodeType.REPOSITORY;
-        }
-
-        if (annotations.contains("Entity")) {
-            return NodeType.ENTITY;
-        }
-
-        if (annotations.contains("Configuration")) {
-            return NodeType.CONFIGURATION;
-        }
-
-        if (annotations.contains("SpringBootApplication")) {
-            return NodeType.APPLICATION;
-        }
-
-        return NodeType.UNKNOWN;
-    }
 }

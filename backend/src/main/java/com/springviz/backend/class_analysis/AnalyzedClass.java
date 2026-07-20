@@ -1,5 +1,7 @@
 package com.springviz.backend.class_analysis;
 
+import com.springviz.backend.graph.NodeType;
+
 import java.util.List;
 
 public class AnalyzedClass {
@@ -10,10 +12,11 @@ public class AnalyzedClass {
     private final List<String> dependencies;
     private final List<AnalyzedMethod> methods;
     private final List<AnalyzedEndpoint> endpoints;
-    private final String extendsClass;
+    private final List<String> extendedTypes;
     private final List<String> implementedInterfaces;
     private final String filePath;
-    private final ClassKind type;
+    private final ClassKind classKind;
+    private final NodeType nodeType;
 
     private AnalyzedClass(Builder builder) {
         this.packageName = builder.packageName;
@@ -22,11 +25,11 @@ public class AnalyzedClass {
         this.dependencies = List.copyOf(builder.dependencies);
         this.methods = List.copyOf(builder.methods);
         this.endpoints = List.copyOf(builder.endpoints);
-        this.extendsClass = builder.extendsClass;
-        this.implementedInterfaces =
-                List.copyOf(builder.implementedInterfaces);
+        this.extendedTypes = List.copyOf(builder.extendedTypes);
+        this.implementedInterfaces = List.copyOf(builder.implementedInterfaces);
         this.filePath = builder.filePath;
-        this.type = builder.type;
+        this.classKind = builder.classKind;
+        this.nodeType = builder.nodeType;
     }
 
     public static Builder builder(String packageName, String className) {
@@ -42,10 +45,11 @@ public class AnalyzedClass {
         private List<String> dependencies = List.of();
         private List<AnalyzedMethod> methods = List.of();
         private List<AnalyzedEndpoint> endpoints = List.of();
-        private String extendsClass;
+        private List<String> extendedTypes = List.of();
         private List<String> implementedInterfaces = List.of();
         private String filePath;
-        private ClassKind type = ClassKind.CLASS;
+        private ClassKind classKind = ClassKind.CLASS;
+        private NodeType nodeType = NodeType.UNKNOWN;
 
         private Builder(String packageName, String className) {
             this.packageName = packageName;
@@ -72,14 +76,12 @@ public class AnalyzedClass {
             return this;
         }
 
-        public Builder extendsClass(String extendsClass) {
-            this.extendsClass = extendsClass;
+        public Builder extendedTypes(List<String> extendedTypes) {
+            this.extendedTypes = extendedTypes;
             return this;
         }
 
-        public Builder implementedInterfaces(
-                List<String> implementedInterfaces
-        ) {
+        public Builder implementedInterfaces(List<String> implementedInterfaces) {
             this.implementedInterfaces = implementedInterfaces;
             return this;
         }
@@ -89,8 +91,13 @@ public class AnalyzedClass {
             return this;
         }
 
-        public Builder type(ClassKind type) {
-            this.type = type;
+        public Builder classKind(ClassKind classKind) {
+            this.classKind = classKind;
+            return this;
+        }
+
+        public Builder nodeType(NodeType nodeType) {
+            this.nodeType = nodeType;
             return this;
         }
 
@@ -123,8 +130,8 @@ public class AnalyzedClass {
         return endpoints;
     }
 
-    public String getExtendsClass() {
-        return extendsClass;
+    public List<String> getExtendedTypes() {
+        return extendedTypes;
     }
 
     public List<String> getImplementedInterfaces() {
@@ -135,8 +142,12 @@ public class AnalyzedClass {
         return filePath;
     }
 
-    public ClassKind getType() {
-        return this.type;
+    public ClassKind getClassKind() {
+        return this.classKind;
+    }
+
+    public NodeType getNodeType() {
+        return this.nodeType;
     }
 
     @Override
@@ -148,10 +159,11 @@ public class AnalyzedClass {
                 ", dependencies=" + dependencies +
                 ", methods=" + methods +
                 ", endpoints=" + endpoints +
-                ", extendsClass='" + extendsClass + '\'' +
+                ", extendedTypes=" + extendedTypes +
                 ", implementedInterfaces=" + implementedInterfaces +
                 ", filePath='" + filePath + '\'' +
-                ", type=" + type +
+                ", classKind=" + classKind +
+                ", nodeType=" + nodeType +
                 '}';
     }
 }

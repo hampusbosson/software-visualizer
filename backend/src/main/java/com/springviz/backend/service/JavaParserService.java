@@ -6,6 +6,9 @@ import com.github.javaparser.ast.nodeTypes.NodeWithName;
 import com.springviz.backend.class_analysis.AnalyzedClass;
 import com.springviz.backend.class_analysis.AnalyzedMethod;
 import com.springviz.backend.class_analysis.AnalyzedParameter;
+import com.springviz.backend.class_analysis.ClassKind;
+import com.springviz.backend.graph.NodeTypeClassifier;
+import com.springviz.backend.graph.NodeType;
 import org.springframework.stereotype.Service;
 
 import com.github.javaparser.ast.CompilationUnit;
@@ -20,6 +23,7 @@ import java.util.Optional;
 public class JavaParserService {
 
     private final JavaParser javaParser;
+    private final NodeTypeClassifier nodeTypeClassifier = new NodeTypeClassifier();
 
     public JavaParserService(JavaParser javaParser) {
         this.javaParser = javaParser;
@@ -64,6 +68,11 @@ public class JavaParserService {
                     .annotations(extractAnnotations(typeDeclaration))
                     .dependencies(extractDependencies(typeDeclaration))
                     .methods(extractMethods(typeDeclaration))
+                    .extendedTypes(extractExtendedTypes(typeDeclaration))
+                    .implementedInterfaces(extractImplementedInterfaces(typeDeclaration))
+                    .filePath(javaFile.toString())
+                    .classKind(extractClassKind(typeDeclaration))
+                    .nodeType(extractNodeType(typeDeclaration))
                     .build();
 
             return Optional.of(analyzedClass);
@@ -126,6 +135,79 @@ public class JavaParserService {
                                 .orElse(-1)
                 ))
                 .toList();
+    }
+
+    private List<String> extractExtendedTypes(
+            TypeDeclaration<?> typeDeclaration
+    ) {
+        List<String> extendedTypes = new java.util.ArrayList<>();
+
+        if (typeDeclaration.isClassOrInterfaceDeclaration()) {
+            var classOrInterfaceDeclaration =
+                    typeDeclaration.asClassOrInterfaceDeclaration();
+
+            extendedTypes.addAll(classOrInterfaceDeclaration
+                    .getExtendedTypes()
+                    .stream()
+                    .map(type -> type.asString())
+                    .toList());
+        }
+
+        return extendedTypes;
+    }
+
+    private List<String> extractImplementedInterfaces(
+            TypeDeclaration<?> typeDeclaration
+    ) {
+        if (!typeDeclaration.isClassOrInterfaceDeclaration()) {
+            return List.of();
+        }
+
+        return typeDeclaration
+                .asClassOrInterfaceDeclaration()
+                .getImplementedTypes()
+                .stream()
+                .map(type -> type.asString())
+                .toList();
+    }
+
+    private ClassKind extractClassKind(TypeDeclaration<?> typeDeclaration) {
+        if (typeDeclaration.isClassOrInterfaceDeclaration()) {
+            var classOrInterfaceDeclaration =
+                    typeDeclaration.asClassOrInterfaceDeclaration();
+
+            if (classOrInterfaceDeclaration.isInterface()) {
+                return ClassKind.INTERFACE;
+            }
+
+            if (classOrInterfaceDeclaration.isAbstract()) {
+                return ClassKind.ABSTRACT_CLASS;
+            }
+
+            return ClassKind.CLASS;
+        }
+
+        if (typeDeclaration.isEnumDeclaration()) {
+            return ClassKind.ENUM;
+        }
+
+        if (typeDeclaration.isRecordDeclaration()) {
+            return ClassKind.RECORD;
+        }
+
+        return ClassKind.CLASS;
+    }
+
+    private NodeType extractNodeType(TypeDeclaration<?> typeDeclaration) {
+        List<String> annotations = extractAnnotations(typeDeclaration);
+        List<String> extendedTypes = extractExtendedTypes(typeDeclaration);
+        List<String> implementedInterfaces = extractImplementedInterfaces(typeDeclaration);
+
+        return nodeTypeClassifier.classify(
+                annotations,
+                extendedTypes,
+                implementedInterfaces
+        );
     }
 
 }

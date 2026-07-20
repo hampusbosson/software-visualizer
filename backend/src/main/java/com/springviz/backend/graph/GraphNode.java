@@ -16,7 +16,7 @@ public class GraphNode {
     private List<String> dependencies;
     private List<AnalyzedMethod> methods;
     private List<AnalyzedEndpoint> endpoints;
-    private String extendsClass;
+    private List<String> extendedTypes;
     private List<String> implementedInterfaces;
     private String filePath;
     private ClassKind classKind;
@@ -30,7 +30,7 @@ public class GraphNode {
             List<String> dependencies,
             List<AnalyzedMethod> methods,
             List<AnalyzedEndpoint> endpoints,
-            String extendsClass,
+            List<String> extendedTypes,
             List<String> implementedInterfaces,
             String filePath,
             ClassKind classKind
@@ -43,7 +43,7 @@ public class GraphNode {
         this.dependencies = dependencies;
         this.methods = methods;
         this.endpoints = endpoints;
-        this.extendsClass = extendsClass;
+        this.extendedTypes = extendedTypes;
         this.implementedInterfaces = implementedInterfaces;
         this.filePath = filePath;
         this.classKind = classKind;
@@ -81,8 +81,8 @@ public class GraphNode {
         return endpoints;
     }
 
-    public String getExtendsClass() {
-        return extendsClass;
+    public List<String> getExtendedTypes() {
+        return extendedTypes;
     }
 
     public List<String> getImplementedInterfaces() {
@@ -129,8 +129,8 @@ public class GraphNode {
         this.endpoints = endpoints;
     }
 
-    public void setExtendsClass(String extendsClass) {
-        this.extendsClass = extendsClass;
+    public void setExtendedTypes(List<String> extendedTypes) {
+        this.extendedTypes = extendedTypes;
     }
 
     public void setImplementedInterfaces(List<String> implementedInterfaces) {
