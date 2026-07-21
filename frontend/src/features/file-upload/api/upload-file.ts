@@ -1,8 +1,13 @@
-import type { GraphEdge, GraphResponse } from '../../../types/graph'
+import type { AnalysisResponse, GraphEdge, GraphResponse } from '../../../types/graph'
 
 type GraphApiResponse = Omit<GraphResponse, 'projectName'> & {
   edges: GraphApiEdge[]
   project_name?: string | null
+}
+
+type AnalysisApiResponse = {
+  analysisId: string
+  graph: GraphApiResponse
 }
 
 type GraphApiEdge =
@@ -13,7 +18,7 @@ type GraphApiEdge =
       type?: string
     }
 
-export async function analyzeFile(file: File): Promise<GraphResponse> {
+export async function analyzeFile(file: File): Promise<AnalysisResponse> {
   const formData = new FormData()
   formData.append('file', file)
 
@@ -27,10 +32,17 @@ export async function analyzeFile(file: File): Promise<GraphResponse> {
     throw new Error(errorText || `Analysis failed with status ${response.status}`)
   }
 
-  const graphApiResponse = (await response.json()) as GraphApiResponse
+  const analysisApiResponse = (await response.json()) as AnalysisApiResponse
 
-  console.log(graphApiResponse);
+  console.log('analysis upload response', analysisApiResponse)
 
+  return {
+    analysisId: analysisApiResponse.analysisId,
+    graph: normalizeGraphResponse(analysisApiResponse.graph),
+  }
+}
+
+function normalizeGraphResponse(graphApiResponse: GraphApiResponse): GraphResponse {
   return {
     nodes: graphApiResponse.nodes,
     edges: graphApiResponse.edges.map(normalizeEdge),

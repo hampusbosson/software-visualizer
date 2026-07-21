@@ -25,6 +25,11 @@ export type GraphResponse = {
   projectName?: string | null
 }
 
+export type AnalysisResponse = {
+  analysisId: string
+  graph: GraphResponse
+}
+
 export type ClassKind = 'CLASS' | 'ABSTRACT_CLASS' | 'INTERFACE' | 'ENUM' | 'RECORD'
 
 export type AnalyzedMethod = {

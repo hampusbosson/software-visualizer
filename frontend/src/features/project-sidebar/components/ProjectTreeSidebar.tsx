@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent } from 'react'
 
 import { ChevronRightIcon, FileCodeIcon, FolderIcon } from '../../../assets/icons'
+import { clampResizablePanelWidth } from '../../../components/ui/resizable-panel'
 import type { GraphNode, GraphResponse } from '../../../types/graph'
 import type { ProjectTreeNode } from '../types/project-tree'
 
@@ -11,8 +12,6 @@ type ProjectTreeSidebarProps = {
   selectedNodeId: string | null
 }
 
-const MIN_SIDEBAR_WIDTH = 220
-const MAX_SIDEBAR_WIDTH = 520
 const DEFAULT_SIDEBAR_WIDTH = 300
 
 export function ProjectTreeSidebar({
@@ -35,7 +34,7 @@ export function ProjectTreeSidebar({
     }
 
     function handleMouseMove(event: MouseEvent) {
-      setWidth(clamp(event.clientX, MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH))
+      setWidth(clampResizablePanelWidth(event.clientX))
     }
 
     function handleMouseUp() {
@@ -255,8 +254,4 @@ function collectFolderIds(nodes: ProjectTreeNode[]): string[] {
 
     return [node.id, ...collectFolderIds(node.children)]
   })
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max)
 }

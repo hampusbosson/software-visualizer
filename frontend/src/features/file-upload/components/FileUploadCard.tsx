@@ -4,14 +4,14 @@ import type { DragEvent } from 'react'
 import { CloseIcon, UploadIcon, ZipFileIcon } from '../../../assets/icons'
 import { Button } from '../../../components/ui/button'
 import type { UploadState } from '../../../types/file-upload'
-import type { GraphResponse } from '../../../types/graph'
+import type { AnalysisResponse } from '../../../types/graph'
 import { analyzeFile } from '../api/upload-file'
 
 type FileUploadCardProps = {
-  setGraphResponse: (graphResponse: GraphResponse) => void
+  setAnalysisResponse: (analysisResponse: AnalysisResponse) => void
 }
 
-export function FileUploadCard({ setGraphResponse }: FileUploadCardProps) {
+export function FileUploadCard({ setAnalysisResponse }: FileUploadCardProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [uploadState, setUploadState] = useState<UploadState>('idle')
@@ -57,9 +57,9 @@ export function FileUploadCard({ setGraphResponse }: FileUploadCardProps) {
     setUploadState('uploading')
 
     try {
-      const graphResponse = await analyzeFile(file)
+      const analysisResponse = await analyzeFile(file)
       setUploadState('success')
-      setGraphResponse(graphResponse)
+      setAnalysisResponse(analysisResponse)
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Upload failed')
       setUploadState('error')

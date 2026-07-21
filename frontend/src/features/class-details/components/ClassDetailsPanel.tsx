@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { MouseEvent as ReactMouseEvent } from 'react'
 
+import { clampResizablePanelWidth } from '../../../components/ui/resizable-panel'
 import type {
   AnalyzedEndpoint,
   AnalyzedMethod,
@@ -14,63 +16,86 @@ type ClassDetailsPanelProps = {
 }
 
 type InspectorTab = 'overview' | 'code'
+type InspectorTabState = {
+  nodeId: string | null
+  tab: InspectorTab
+}
 
-const MOCK_METHODS: AnalyzedMethod[] = [
-  {
-    name: 'findAll',
-    returnType: 'List<Vet>',
-    parameters: [],
-    annotations: ['Transactional'],
-    startLine: 24,
-    endLine: 28,
-  },
-  {
-    name: 'findById',
-    returnType: 'Optional<Vet>',
-    parameters: [{ name: 'id', type: 'Integer' }],
-    annotations: [],
-    startLine: 30,
-    endLine: 34,
-  },
-  {
-    name: 'save',
-    returnType: 'Vet',
-    parameters: [{ name: 'vet', type: 'Vet' }],
-    annotations: [],
-    startLine: 36,
-    endLine: 41,
-  },
-]
-
-const MOCK_ENDPOINTS: AnalyzedEndpoint[] = [
-  { httpMethod: 'GET', path: '/api/vets', methodName: 'findAll' },
-  { httpMethod: 'GET', path: '/api/vets/{id}', methodName: 'findById' },
-]
+const DEFAULT_INSPECTOR_WIDTH = 360
 
 export function ClassDetailsPanel({ graphResponse, node, onClose }: ClassDetailsPanelProps) {
-  const [selectedTab, setSelectedTab] = useState<InspectorTab>('overview')
+  const [selectedTabState, setSelectedTabState] = useState<InspectorTabState>({
+    nodeId: null,
+    tab: 'overview',
+  })
+  const [width, setWidth] = useState(DEFAULT_INSPECTOR_WIDTH)
+  const [isResizing, setIsResizing] = useState(false)
   const viewModel = useMemo(
     () => (node ? createClassDetailsViewModel(node, graphResponse) : null),
     [graphResponse, node],
   )
+  const selectedTab =
+    selectedTabState.nodeId === node?.id ? selectedTabState.tab : 'overview'
+
+  useEffect(() => {
+    if (!isResizing) {
+      return
+    }
+
+    function handleMouseMove(event: MouseEvent) {
+      setWidth(clampResizablePanelWidth(window.innerWidth - event.clientX))
+    }
+
+    function handleMouseUp() {
+      setIsResizing(false)
+    }
+
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isResizing])
+
+  function startResize(event: ReactMouseEvent<HTMLDivElement>) {
+    event.preventDefault()
+    setIsResizing(true)
+  }
 
   if (!node || !viewModel) {
     return null
   }
 
   return (
-    <aside className="flex h-screen w-[360px] shrink-0 flex-col border-l border-white/10 bg-[#0b1018] text-slate-200">
+    <aside
+      className="relative flex h-screen shrink-0 flex-col border-l border-white/10 bg-[#0b1018] text-slate-200"
+      style={{ width }}
+    >
+      <div
+        className="absolute left-0 top-0 h-full w-1 cursor-col-resize transition hover:bg-cyan-400/50"
+        onMouseDown={startResize}
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize class inspector"
+      />
+
       <div className="border-b border-white/10 px-4 py-3">
         <div className="grid grid-cols-2 rounded-lg border border-white/10 bg-[#070b11] p-1">
           <InspectorTabButton
             active={selectedTab === 'overview'}
             label="Overview"
-            onClick={() => setSelectedTab('overview')}
+            onClick={() => setSelectedTabState({ nodeId: node.id, tab: 'overview' })}
           />
           <InspectorTabButton
             active={selectedTab === 'code'}
             label="Code"
-            onClick={() => setSelectedTab('code')}
+            onClick={() => setSelectedTabState({ nodeId: node.id, tab: 'code' })}
           />
         </div>
       </div>
@@ -137,8 +162,6 @@ function InspectorTabButton({ active, label, onClick }: InspectorTabButtonProps)
 }
 
 type ClassDetailsViewModel = {
-  classKind: string
-  code: string
   dependencies: string[]
   endpoints: AnalyzedEndpoint[]
   extendedTypes: string[]
@@ -212,6 +235,10 @@ function ConnectionGroup({ direction, items, title }: ConnectionGroupProps) {
 }
 
 function MethodList({ methods }: { methods: AnalyzedMethod[] }) {
+  if (methods.length === 0) {
+    return <p className="text-xs text-slate-600">No methods</p>
+  }
+
   return (
     <div className="space-y-3">
       {methods.map((method) => (
@@ -254,14 +281,12 @@ function CodeTab({ viewModel }: { viewModel: ClassDetailsViewModel }) {
       <div className="overflow-hidden rounded-xl border border-white/10 bg-[#090d14]">
         <div className="flex items-center justify-between border-b border-white/[0.07] bg-[#0c111a] px-3 py-2">
           <span className="truncate font-mono text-xs text-slate-400">{viewModel.label}.java</span>
-          <span className="text-[11px] text-slate-600">mock</span>
+          <span className="text-[11px] text-slate-600">not loaded</span>
         </div>
 
-        <pre className="app-scrollbar max-h-[calc(100vh-190px)] overflow-auto p-4 font-mono text-xs leading-5 text-slate-300">
-          <code>
-            <JavaCodePreview code={viewModel.code} />
-          </code>
-        </pre>
+        <div className="p-4 font-mono text-xs leading-5 text-slate-600">
+          Source code is not loaded yet.
+        </div>
       </div>
     </div>
   )
@@ -305,84 +330,24 @@ function DefinitionRow({ label, muted = false, value }: DefinitionRowProps) {
   )
 }
 
-function JavaCodePreview({ code }: { code: string }) {
-  return (
-    <>
-      {code.split('\n').map((line, index) => (
-        <span key={`${index}-${line}`} className="block">
-          <span className="mr-4 inline-block w-6 select-none text-right text-slate-700">
-            {index + 1}
-          </span>
-          {highlightJavaLine(line)}
-        </span>
-      ))}
-    </>
-  )
-}
-
-function highlightJavaLine(line: string) {
-  const commentIndex = line.indexOf('//')
-  const codePart = commentIndex >= 0 ? line.slice(0, commentIndex) : line
-  const commentPart = commentIndex >= 0 ? line.slice(commentIndex) : ''
-  const tokens = codePart.split(/(\s+|[(){};,.<>@])/)
-
-  return (
-    <>
-      {tokens.map((token, index) => (
-        <span key={`${token}-${index}`} className={getJavaTokenClassName(token)}>
-          {token}
-        </span>
-      ))}
-      {commentPart ? <span className="text-slate-600">{commentPart}</span> : null}
-    </>
-  )
-}
-
-function getJavaTokenClassName(token: string) {
-  if (['class', 'interface', 'enum', 'record', 'extends', 'implements', 'public', 'private', 'protected', 'final', 'return', 'new'].includes(token)) {
-    return 'text-[#c586c0]'
-  }
-
-  if (['String', 'Integer', 'Long', 'List', 'Optional', 'void'].includes(token)) {
-    return 'text-[#4ec9b0]'
-  }
-
-  if (token.startsWith('@')) {
-    return 'text-[#dcdcaa]'
-  }
-
-  return ''
-}
-
 function createClassDetailsViewModel(
   node: GraphNode,
   graphResponse: GraphResponse,
 ): ClassDetailsViewModel {
-  const annotations = withFallback(node.annotations, ['Entity', 'Table'])
-  const methods = node.methods && node.methods.length > 0 ? node.methods : MOCK_METHODS
-  const endpoints = node.endpoints && node.endpoints.length > 0
-    ? node.endpoints
-    : node.type === 'CONTROLLER'
-      ? MOCK_ENDPOINTS
-      : []
   const relationshipLabels = getRelationshipLabels(node, graphResponse)
   const dependencies =
     relationshipLabels.dependsOn.length > 0
       ? relationshipLabels.dependsOn
-      : withFallback(node.dependencies, getMockDependencies(node.type))
-  const extendedTypes = withFallback(node.extendedTypes, getMockExtendedTypes(node.type))
-  const implementedInterfaces = withFallback(node.implementedInterfaces, getMockInterfaces(node.type))
+      : node.dependencies ?? []
 
   return {
-    classKind: node.classKind ?? getMockClassKind(node.type),
-    code: createMockJavaCode(node, annotations, methods),
     dependencies,
-    endpoints,
-    extendedTypes,
-    implementedInterfaces,
+    endpoints: node.endpoints ?? [],
+    extendedTypes: node.extendedTypes ?? [],
+    implementedInterfaces: node.implementedInterfaces ?? [],
     label: node.label,
-    methods,
-    packageName: node.packageName ?? 'org.springframework.samples.petclinic',
+    methods: node.methods ?? [],
+    packageName: node.packageName ?? 'No package',
     type: node.type,
     usedBy: relationshipLabels.usedBy,
   }
@@ -409,52 +374,4 @@ function getRelationshipLabels(node: GraphNode, graphResponse: GraphResponse) {
     dependsOn: [...dependsOn],
     usedBy: [...usedBy],
   }
-}
-
-function withFallback(values: string[] | undefined, fallback: string[]) {
-  return values && values.length > 0 ? values : fallback
-}
-
-function getMockDependencies(nodeType: string) {
-  if (nodeType === 'CONTROLLER') {
-    return ['VetService']
-  }
-
-  if (nodeType === 'SERVICE') {
-    return ['VetRepository']
-  }
-
-  return []
-}
-
-function getMockExtendedTypes(nodeType: string) {
-  return nodeType === 'ENTITY' ? ['BaseEntity'] : []
-}
-
-function getMockInterfaces(nodeType: string) {
-  return nodeType === 'REPOSITORY' ? ['JpaRepository<Vet, Integer>'] : []
-}
-
-function getMockClassKind(nodeType: string) {
-  return nodeType === 'DTO' ? 'RECORD' : 'CLASS'
-}
-
-function createMockJavaCode(
-  node: GraphNode,
-  annotations: string[],
-  methods: AnalyzedMethod[],
-) {
-  const annotationLines = annotations.map((annotation) => `@${annotation}`).join('\n')
-  const methodLines = methods
-    .slice(0, 4)
-    .map((method) => {
-      const parameters = method.parameters
-        .map((parameter) => `${parameter.type} ${parameter.name}`)
-        .join(', ')
-
-      return `    public ${method.returnType} ${method.name}(${parameters}) {\n        // implementation loaded on demand\n        return null;\n    }`
-    })
-    .join('\n\n')
-
-  return `package ${node.packageName ?? 'org.springframework.samples.petclinic'};\n\n${annotationLines}\npublic class ${node.label} {\n\n${methodLines}\n}`
 }

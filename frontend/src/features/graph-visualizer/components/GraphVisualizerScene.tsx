@@ -1,18 +1,18 @@
 import { useState } from 'react'
 
-import type { GraphNode } from '../../../types/graph'
-import type { GraphResponse } from '../../../types/graph'
+import type { AnalysisResponse, GraphNode } from '../../../types/graph'
 import { ClassDetailsPanel } from '../../class-details/components/ClassDetailsPanel'
 import { ProjectTreeSidebar } from '../../project-sidebar/components/ProjectTreeSidebar'
 import { mockGraphResponse } from '../three/mockGraph'
 import { ProjectScene } from './ProjectScene'
 
 type GraphVisualizerSceneProps = {
-  graphResponse: GraphResponse
+  analysisResponse: AnalysisResponse
 }
 
-export function GraphVisualizerScene({ graphResponse }: GraphVisualizerSceneProps) {
+export function GraphVisualizerScene({ analysisResponse }: GraphVisualizerSceneProps) {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null)
+  const graphResponse = analysisResponse.graph
   const sceneGraphResponse =
     graphResponse.nodes.length > 0 ? graphResponse : mockGraphResponse
 
@@ -43,7 +43,6 @@ export function GraphVisualizerScene({ graphResponse }: GraphVisualizerSceneProp
 
       <ClassDetailsPanel
         graphResponse={sceneGraphResponse}
-        key={selectedNode?.id ?? 'empty-class-details'}
         node={selectedNode}
         onClose={clearSelection}
       />
