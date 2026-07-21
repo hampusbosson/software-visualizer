@@ -15,6 +15,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.TypeDeclaration;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -29,14 +30,14 @@ public class JavaParserService {
         this.javaParser = javaParser;
     }
 
-    public List<AnalyzedClass> parse(List<Path> javaFiles) {
+    public List<AnalyzedClass> parse(Path projectDirectory, List<Path> javaFiles) {
         return javaFiles.stream()
-                .map(this::parseJavaFile)
+                .map(javaFile -> parseJavaFile(projectDirectory, javaFile))
                 .flatMap(Optional::stream)
                 .toList();
     }
 
-    private Optional<AnalyzedClass> parseJavaFile(Path javaFile) {
+    private Optional<AnalyzedClass> parseJavaFile(Path projectDirectory, Path javaFile) {
         try {
             ParseResult<CompilationUnit> parseResult = javaParser.parse(javaFile);
 
@@ -63,6 +64,9 @@ public class JavaParserService {
             // hämta klassnamn
             String className = typeDeclaration.getNameAsString();
 
+            // hämta source code
+            String sourceCode = Files.readString(javaFile);
+
             AnalyzedClass analyzedClass = AnalyzedClass
                     .builder(packageName, className)
                     .annotations(extractAnnotations(typeDeclaration))
@@ -70,7 +74,8 @@ public class JavaParserService {
                     .methods(extractMethods(typeDeclaration))
                     .extendedTypes(extractExtendedTypes(typeDeclaration))
                     .implementedInterfaces(extractImplementedInterfaces(typeDeclaration))
-                    .filePath(javaFile.toString())
+                    .filePath(createRelativeFilePath(projectDirectory, javaFile))
+                    .sourceCode(sourceCode)
                     .classKind(extractClassKind(typeDeclaration))
                     .nodeType(extractNodeType(typeDeclaration))
                     .build();
@@ -79,6 +84,16 @@ public class JavaParserService {
         } catch (IOException ex) {
             return Optional.empty();
         }
+    }
+
+    private String createRelativeFilePath(Path projectDirectory, Path javaFile) {
+        Path normalizedProjectDirectory = projectDirectory.toAbsolutePath().normalize();
+        Path normalizedJavaFile = javaFile.toAbsolutePath().normalize();
+
+        return normalizedProjectDirectory
+                .relativize(normalizedJavaFile)
+                .toString()
+                .replace('\\', '/');
     }
 
     private String extractPackageName(CompilationUnit compilationUnit) {

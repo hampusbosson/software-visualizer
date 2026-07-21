@@ -1,7 +1,8 @@
-package com.springviz.backend.graph;
+package com.springviz.backend.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.springviz.backend.graph.GraphEdge;
+import com.springviz.backend.graph.GraphNode;
 
 import java.util.List;
 

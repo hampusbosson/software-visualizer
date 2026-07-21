@@ -1,14 +1,12 @@
 package com.springviz.backend.controller;
 
-import com.springviz.backend.graph.GraphResponse;
+import com.springviz.backend.dto.AnalysisResponse;
+import com.springviz.backend.dto.SourceCodeResponse;
 import com.springviz.backend.service.AnalysisService;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 
@@ -24,9 +22,19 @@ public class AnalysisController {
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<GraphResponse> analyzeProject(@RequestParam("file") @NotNull MultipartFile file) throws IOException {
-        GraphResponse response = analysisService.analyze(file);
+    public ResponseEntity<AnalysisResponse> analyzeProject(@RequestParam("file") @NotNull MultipartFile file) throws IOException {
+        AnalysisResponse response = analysisService.analyze(file);
 
         return ResponseEntity.status(201).body(response);
+    }
+
+    @GetMapping("/{analysisId}/source")
+    public ResponseEntity<SourceCodeResponse> getSourceCode(
+            @PathVariable String analysisId,
+            @RequestParam String nodeId
+    ) {
+        SourceCodeResponse response = analysisService.getSourceCode(analysisId, nodeId);
+
+        return ResponseEntity.ok(response);
     }
 }

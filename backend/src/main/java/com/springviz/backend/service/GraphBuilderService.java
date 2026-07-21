@@ -3,7 +3,7 @@ package com.springviz.backend.service;
 import com.springviz.backend.class_analysis.AnalyzedClass;
 import com.springviz.backend.graph.GraphEdge;
 import com.springviz.backend.graph.GraphNode;
-import com.springviz.backend.graph.GraphResponse;
+import com.springviz.backend.dto.GraphResponse;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;

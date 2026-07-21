@@ -15,6 +15,7 @@ public class AnalyzedClass {
     private final List<String> extendedTypes;
     private final List<String> implementedInterfaces;
     private final String filePath;
+    private final String sourceCode;
     private final ClassKind classKind;
     private final NodeType nodeType;
 
@@ -28,6 +29,7 @@ public class AnalyzedClass {
         this.extendedTypes = List.copyOf(builder.extendedTypes);
         this.implementedInterfaces = List.copyOf(builder.implementedInterfaces);
         this.filePath = builder.filePath;
+        this.sourceCode = builder.sourceCode;
         this.classKind = builder.classKind;
         this.nodeType = builder.nodeType;
     }
@@ -48,6 +50,7 @@ public class AnalyzedClass {
         private List<String> extendedTypes = List.of();
         private List<String> implementedInterfaces = List.of();
         private String filePath;
+        private String sourceCode;
         private ClassKind classKind = ClassKind.CLASS;
         private NodeType nodeType = NodeType.UNKNOWN;
 
@@ -88,6 +91,11 @@ public class AnalyzedClass {
 
         public Builder filePath(String filePath) {
             this.filePath = filePath;
+            return this;
+        }
+
+        public Builder sourceCode(String sourceCode) {
+            this.sourceCode = sourceCode;
             return this;
         }
 
@@ -142,6 +150,10 @@ public class AnalyzedClass {
         return filePath;
     }
 
+    public String getSourceCode() {
+        return sourceCode;
+    }
+
     public ClassKind getClassKind() {
         return this.classKind;
     }
@@ -162,6 +174,7 @@ public class AnalyzedClass {
                 ", extendedTypes=" + extendedTypes +
                 ", implementedInterfaces=" + implementedInterfaces +
                 ", filePath='" + filePath + '\'' +
+                ", sourceCode=" + (sourceCode == null ? "null" : "'" + sourceCode.length() + " chars'") +
                 ", classKind=" + classKind +
                 ", nodeType=" + nodeType +
                 '}';
