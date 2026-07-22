@@ -1,19 +1,34 @@
 import type { ReactNode } from 'react'
 
 import type { AnalyzedEndpoint, AnalyzedMethod } from '../../../types/graph'
-import type { ClassDetailsViewModel } from '../types/class-details'
+import type { ClassConnection, ClassDetailsViewModel } from '../types/class-details'
 
 type OverviewTabProps = {
+  onSelectConnection: (nodeId: string) => void
   onSelectMethod: (method: AnalyzedMethod) => void
   viewModel: ClassDetailsViewModel
 }
 
-export function OverviewTab({ onSelectMethod, viewModel }: OverviewTabProps) {
+export function OverviewTab({
+  onSelectConnection,
+  onSelectMethod,
+  viewModel,
+}: OverviewTabProps) {
   return (
     <div className="px-5 py-2">
       <InspectorSection title="Connections">
-        <ConnectionGroup direction="incoming" items={viewModel.usedBy} title="Used by" />
-        <ConnectionGroup direction="outgoing" items={viewModel.dependencies} title="Depends on" />
+        <ConnectionGroup
+          direction="incoming"
+          items={viewModel.usedBy}
+          onSelectConnection={onSelectConnection}
+          title="Used by"
+        />
+        <ConnectionGroup
+          direction="outgoing"
+          items={viewModel.dependencies}
+          onSelectConnection={onSelectConnection}
+          title="Depends on"
+        />
         <DefinitionRow
           label="Extends"
           value={viewModel.extendedTypes.length > 0 ? viewModel.extendedTypes.join(', ') : 'None'}
@@ -45,11 +60,17 @@ export function OverviewTab({ onSelectMethod, viewModel }: OverviewTabProps) {
 
 type ConnectionGroupProps = {
   direction: 'incoming' | 'outgoing'
-  items: string[]
+  items: ClassConnection[]
+  onSelectConnection: (nodeId: string) => void
   title: string
 }
 
-function ConnectionGroup({ direction, items, title }: ConnectionGroupProps) {
+function ConnectionGroup({
+  direction,
+  items,
+  onSelectConnection,
+  title,
+}: ConnectionGroupProps) {
   const symbol = direction === 'incoming' ? '←' : '→'
 
   return (
@@ -61,15 +82,49 @@ function ConnectionGroup({ direction, items, title }: ConnectionGroupProps) {
       {items.length > 0 ? (
         <div className="mt-2 space-y-1">
           {items.map((item) => (
-            <p key={item} className="truncate font-mono text-xs text-slate-300">
-              {item}
-            </p>
+            <ConnectionButton
+              key={`${item.nodeId ?? item.label}-${item.label}`}
+              item={item}
+              onSelectConnection={onSelectConnection}
+            />
           ))}
         </div>
       ) : (
         <p className="mt-1 text-xs text-slate-600">None</p>
       )}
     </div>
+  )
+}
+
+type ConnectionButtonProps = {
+  item: ClassConnection
+  onSelectConnection: (nodeId: string) => void
+}
+
+function ConnectionButton({ item, onSelectConnection }: ConnectionButtonProps) {
+  const nodeId = item.nodeId
+
+  if (nodeId === null) {
+    return (
+      <p className="truncate px-2 py-1.5 font-mono text-xs text-slate-500">
+        {item.label}
+      </p>
+    )
+  }
+
+  return (
+    <button
+      className="group grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-md px-2 py-1.5 text-left transition hover:bg-white/[0.04]"
+      onClick={() => onSelectConnection(nodeId)}
+      type="button"
+    >
+      <span className="truncate font-mono text-xs text-slate-300 group-hover:text-white">
+        {item.label}
+      </span>
+      <span className="text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-slate-300">
+        →
+      </span>
+    </button>
   )
 }
 

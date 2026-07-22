@@ -11,6 +11,7 @@ type ClassDetailsPanelProps = {
   analysisId: string
   graphResponse: GraphResponse
   node: GraphNode | null
+  onSelectNode: (node: GraphNode) => void
 }
 
 type InspectorTab = 'overview' | 'code'
@@ -26,6 +27,7 @@ export function ClassDetailsPanel({
   analysisId,
   graphResponse,
   node,
+  onSelectNode,
 }: ClassDetailsPanelProps) {
   const [selectedTabState, setSelectedTabState] = useState<InspectorTabState>({
     nodeId: null,
@@ -102,6 +104,17 @@ export function ClassDetailsPanel({
     setSelectedTabState({ nodeId: node.id, tab: 'code' })
   }
 
+  function selectConnectedNode(nodeId: string) {
+    const connectedNode = graphResponse.nodes.find((graphNode) => graphNode.id === nodeId)
+
+    if (!connectedNode) {
+      return
+    }
+
+    setMethodJumpTarget(null)
+    onSelectNode(connectedNode)
+  }
+
   if (!node || !viewModel) {
     return null
   }
@@ -156,7 +169,11 @@ export function ClassDetailsPanel({
 
         {selectedTab === 'overview' ? (
           <div className="app-scrollbar min-h-0 flex-1 overflow-auto">
-            <OverviewTab onSelectMethod={openMethodInCode} viewModel={viewModel} />
+            <OverviewTab
+              onSelectConnection={selectConnectedNode}
+              onSelectMethod={openMethodInCode}
+              viewModel={viewModel}
+            />
           </div>
         ) : (
           <div className="min-h-0 flex-1">
@@ -200,11 +217,11 @@ function createClassDetailsViewModel(
   node: GraphNode,
   graphResponse: GraphResponse,
 ): ClassDetailsViewModel {
-  const relationshipLabels = getRelationshipLabels(node, graphResponse)
+  const relationships = getRelationshipConnections(node, graphResponse)
   const dependencies =
-    relationshipLabels.dependsOn.length > 0
-      ? relationshipLabels.dependsOn
-      : node.dependencies ?? []
+    relationships.dependsOn.length > 0
+      ? relationships.dependsOn
+      : createDependencyConnections(node, graphResponse)
 
   return {
     dependencies,
@@ -215,29 +232,54 @@ function createClassDetailsViewModel(
     methods: node.methods ?? [],
     packageName: node.packageName ?? 'No package',
     type: node.type,
-    usedBy: relationshipLabels.usedBy,
+    usedBy: relationships.usedBy,
   }
 }
 
-function getRelationshipLabels(node: GraphNode, graphResponse: GraphResponse) {
+function getRelationshipConnections(node: GraphNode, graphResponse: GraphResponse) {
   const nodesById = new Map(
     graphResponse.nodes.map((graphNode) => [graphNode.id, graphNode]),
   )
-  const usedBy = new Set<string>()
-  const dependsOn = new Set<string>()
+  const usedBy = new Map<string, string>()
+  const dependsOn = new Map<string, string>()
 
   graphResponse.edges.forEach((edge) => {
     if (edge.target === node.id) {
-      usedBy.add(nodesById.get(edge.source)?.label ?? edge.source)
+      usedBy.set(edge.source, nodesById.get(edge.source)?.label ?? edge.source)
     }
 
     if (edge.source === node.id) {
-      dependsOn.add(nodesById.get(edge.target)?.label ?? edge.target)
+      dependsOn.set(edge.target, nodesById.get(edge.target)?.label ?? edge.target)
     }
   })
 
   return {
-    dependsOn: [...dependsOn],
-    usedBy: [...usedBy],
+    dependsOn: [...dependsOn].map(([nodeId, label]) => ({ label, nodeId })),
+    usedBy: [...usedBy].map(([nodeId, label]) => ({ label, nodeId })),
   }
+}
+
+function createDependencyConnections(
+  node: GraphNode,
+  graphResponse: GraphResponse,
+) {
+  return (node.dependencies ?? []).map((dependencyName) => {
+    const dependencyNode = findDependencyNode(dependencyName, graphResponse.nodes)
+
+    return {
+      label: dependencyNode?.label ?? dependencyName,
+      nodeId: dependencyNode?.id ?? null,
+    }
+  })
+}
+
+function findDependencyNode(dependencyName: string, nodes: GraphNode[]) {
+  const rawTypeName = dependencyName.split('<')[0].trim()
+
+  return nodes.find((node) =>
+    node.id === dependencyName ||
+    node.label === dependencyName ||
+    node.label === rawTypeName ||
+    node.id.endsWith(`.${rawTypeName}`),
+  )
 }

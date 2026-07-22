@@ -1,7 +1,12 @@
 import type { AnalyzedEndpoint, AnalyzedMethod } from '../../../types/graph'
 
+export type ClassConnection = {
+  label: string
+  nodeId: string | null
+}
+
 export type ClassDetailsViewModel = {
-  dependencies: string[]
+  dependencies: ClassConnection[]
   endpoints: AnalyzedEndpoint[]
   extendedTypes: string[]
   implementedInterfaces: string[]
@@ -9,7 +14,7 @@ export type ClassDetailsViewModel = {
   methods: AnalyzedMethod[]
   packageName: string
   type: string
-  usedBy: string[]
+  usedBy: ClassConnection[]
 }
 
 export type MethodJumpTarget = {

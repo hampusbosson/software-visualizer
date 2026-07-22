@@ -45,6 +45,7 @@ export function GraphVisualizerScene({ analysisResponse }: GraphVisualizerSceneP
         analysisId={analysisResponse.analysisId}
         graphResponse={sceneGraphResponse}
         node={selectedNode}
+        onSelectNode={selectNode}
       />
     </div>
   )
