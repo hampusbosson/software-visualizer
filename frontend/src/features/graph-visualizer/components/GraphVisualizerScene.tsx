@@ -42,9 +42,9 @@ export function GraphVisualizerScene({ analysisResponse }: GraphVisualizerSceneP
       </main>
 
       <ClassDetailsPanel
+        analysisId={analysisResponse.analysisId}
         graphResponse={sceneGraphResponse}
         node={selectedNode}
-        onClose={clearSelection}
       />
     </div>
   )

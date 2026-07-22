@@ -55,3 +55,14 @@ body {
 .app-scrollbar::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+.monaco-editor .monaco-method-highlight {
+  background: rgba(56, 189, 248, 0.13);
+  border-left: 2px solid rgba(56, 189, 248, 0.75);
+}
+
+.monaco-editor .monaco-method-highlight-glyph {
+  background: rgba(56, 189, 248, 0.75);
+  width: 3px !important;
+  margin-left: 3px;
+}
