@@ -30,7 +30,7 @@ export function RelationshipEdge({
     }
 
     const progress = (clock.elapsedTime * 0.28 + index * 0.23) % 1
-    flowRef.current.position.copy(edgeLayout.curve.getPointAt(progress))
+    flowRef.current.position.copy(edgeLayout.curve.getPointAt(1 - progress))
   })
 
   if (!visualState.isVisible) {
